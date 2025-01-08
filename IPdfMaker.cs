@@ -1,5 +1,8 @@
 ﻿namespace HTPDF;
 
+/// <summary>
+/// Interface for creating PDF documents from HTML content.
+/// </summary>
 public interface IPdfMaker
 {
     /// <summary>

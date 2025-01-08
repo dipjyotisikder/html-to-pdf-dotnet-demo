@@ -14,6 +14,7 @@ public class PdfMaker : IPdfMaker
         _converter = converter;
     }
 
+    /// <inheritdoc />
     public byte[] CreatePDF()
     {
         List<dynamic> data = GetData();
@@ -24,6 +25,7 @@ public class PdfMaker : IPdfMaker
         return _converter.Convert(document);
     }
 
+    /// <inheritdoc />
     public byte[] CreateChunkedPDF()
     {
         var data = GetData();
@@ -34,6 +36,10 @@ public class PdfMaker : IPdfMaker
         return finalPdfStream.ToArray();
     }
 
+    /// <summary>
+    /// Retrieves the data to be used in the PDF.
+    /// </summary>
+    /// <returns>A list of dynamic objects containing the data.</returns>
     private static List<dynamic> GetData()
     {
         return
@@ -49,6 +55,11 @@ public class PdfMaker : IPdfMaker
         ];
     }
 
+    /// <summary>
+    /// Generates an HTML table from the provided data.
+    /// </summary>
+    /// <param name="data">The data to be included in the table.</param>
+    /// <returns>A string containing the HTML table.</returns>
     private static string GenerateTable(List<dynamic> data)
     {
         StringBuilder html = new();
@@ -94,6 +105,11 @@ public class PdfMaker : IPdfMaker
         return html.ToString();
     }
 
+    /// <summary>
+    /// Joins multiple PDF chunks into a single PDF document.
+    /// </summary>
+    /// <param name="pdfChunks">The list of PDF chunks to be joined.</param>
+    /// <returns>A MemoryStream containing the final PDF document.</returns>
     private static MemoryStream JoinChunkedPDF(List<byte[]> pdfChunks)
     {
         var finalPdfStream = new MemoryStream();
@@ -114,6 +130,13 @@ public class PdfMaker : IPdfMaker
         return finalPdfStream;
     }
 
+    /// <summary>
+    /// Paginates the data and converts each page to a PDF chunk.
+    /// </summary>
+    /// <param name="data">The data to be paginated and converted.</param>
+    /// <param name="rowsPerPage">The number of rows per page.</param>
+    /// <returns>A list of byte arrays representing the PDF chunks.</returns>
+    /// <exception cref="ArgumentException">Thrown when rowsPerPage is less than or equal to zero.</exception>
     private List<byte[]> PaginateAndConvertPDF(List<dynamic> data, int rowsPerPage)
     {
         if (rowsPerPage <= 0)
@@ -145,6 +168,11 @@ public class PdfMaker : IPdfMaker
         return pdfChunks;
     }
 
+    /// <summary>
+    /// Creates the settings for the HTML to PDF conversion.
+    /// </summary>
+    /// <param name="htmlContent">The HTML content to be converted.</param>
+    /// <returns>An HtmlToPdfDocument object containing the settings.</returns>
     private static HtmlToPdfDocument GetObjectSettings(string htmlContent)
     {
         var globalSettings = new GlobalSettings
