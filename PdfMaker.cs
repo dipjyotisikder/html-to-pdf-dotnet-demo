@@ -1,6 +1,7 @@
 ﻿using DinkToPdf;
 using DinkToPdf.Contracts;
 using PdfSharpCore.Pdf.IO;
+using System.Text;
 
 namespace HTPDF;
 
@@ -13,99 +14,84 @@ public class PdfMaker : IPdfMaker
         _converter = converter;
     }
 
-
     public byte[] CreatePDF()
     {
-        var htmlContent = GetHTML();
+        List<dynamic> data = GetData();
 
-        var document = GetObjectSettings(htmlContent);
+        string htmlTable = GenerateTable(data);
+        var document = GetObjectSettings(htmlTable);
 
         return _converter.Convert(document);
     }
 
     public byte[] CreateChunkedPDF()
     {
-        var pdfChunks = PaginateAndConvertPDF(20, 100);
+        var data = GetData();
+        var pdfChunks = PaginateAndConvertPDF(data, 5);
 
         using MemoryStream finalPdfStream = JoinChunkedPDF(pdfChunks);
 
         return finalPdfStream.ToArray();
     }
 
-
-
-    private static string GetHTML()
+    private static List<dynamic> GetData()
     {
-        string html = @"
-        <!DOCTYPE html>
-        <html lang=""en"">
-        <head>
-            <meta charset=""UTF-8"">
-            <meta name=""viewport"" content=""width=device-width, initial-scale=1.0"">
-            <title>Multi-Layer Column Table</title>
-            <style>
-                table {
-                    border-collapse: collapse;
-                    width: 100%;
-                }
-                th, td {
-                    border: 1px solid black;
-                    padding: 8px;
-                    text-align: center;
-                }
-                th {
-                    background-color: #f2f2f2;
-                }
-            </style>
-        </head>
-        <body>
-            <table>
-                <thead>
-                    <tr>
-                        <th rowspan=""2"">General Info</th>
-                        <th colspan=""2"">Performance</th>
-                        <th colspan=""3"">Scores</th>
-                    </tr>
-                    <tr>
-                        <th>Math</th>
-                        <th>Science</th>
-                        <th>English</th>
-                        <th>History</th>
-                        <th>Geography</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    <tr>
-                        <td>Student 1</td>
-                        <td>85</td>
-                        <td>90</td>
-                        <td>88</td>
-                        <td>76</td>
-                        <td>89</td>
-                    </tr>
-                    <tr>
-                        <td>Student 2</td>
-                        <td>78</td>
-                        <td>92</td>
-                        <td>85</td>
-                        <td>80</td>
-                        <td>91</td>
-                    </tr>
-                    <tr>
-                        <td>Student 3</td>
-                        <td>82</td>
-                        <td>88</td>
-                        <td>79</td>
-                        <td>84</td>
-                        <td>87</td>
-                    </tr>
-                </tbody>
-            </table>
-        </body>
-        </html>
-        ";
+        return
+        [
+            new { Info = "Student 1", Math = 85, Science = 90, English = 88, History = 76, Geography = 89 },
+            new { Info = "Student 2", Math = 78, Science = 92, English = 85, History = 80, Geography = 91 },
+            new { Info = "Student 3", Math = 82, Science = 88, English = 79, History = 84, Geography = 87 },
+            new { Info = "Student 3", Math = 82, Science = 88, English = 79, History = 84, Geography = 87 },
+            new { Info = "Student 3", Math = 82, Science = 88, English = 79, History = 84, Geography = 87 },
+            new { Info = "Student 3", Math = 82, Science = 88, English = 79, History = 84, Geography = 87 },
+            new { Info = "Student 3", Math = 82, Science = 88, English = 79, History = 84, Geography = 87 },
+            new { Info = "Student 3", Math = 82, Science = 88, English = 79, History = 84, Geography = 87 },
+        ];
+    }
 
-        return html;
+    private static string GenerateTable(List<dynamic> data)
+    {
+        StringBuilder html = new();
+
+        // Start the table
+        html.Append(@"
+        <table border='1' cellspacing='0' cellpadding='5'>
+            <thead>
+                <tr>
+                    <th rowspan='2'>General Info</th>
+                    <th colspan='2'>Performance</th>
+                    <th colspan='3'>Scores</th>
+                </tr>
+                <tr>
+                    <th>Math</th>
+                    <th>Science</th>
+                    <th>English</th>
+                    <th>History</th>
+                    <th>Geography</th>
+                </tr>
+            </thead>
+            <tbody>");
+
+        // Loop through the data to create rows
+        foreach (var row in data)
+        {
+            html.Append($@"
+            <tr>
+                <td>{row.Info}</td>
+                <td>{row.Math}</td>
+                <td>{row.Science}</td>
+                <td>{row.English}</td>
+                <td>{row.History}</td>
+                <td>{row.Geography}</td>
+            </tr>");
+        }
+
+        // End the table
+        html.Append(@"
+            </tbody>
+        </table>");
+
+        return html.ToString();
     }
 
     private static MemoryStream JoinChunkedPDF(List<byte[]> pdfChunks)
@@ -128,7 +114,7 @@ public class PdfMaker : IPdfMaker
         return finalPdfStream;
     }
 
-    private List<byte[]> PaginateAndConvertPDF(int rowsPerPage, int totalRows)
+    private List<byte[]> PaginateAndConvertPDF(List<dynamic> data, int rowsPerPage)
     {
         if (rowsPerPage <= 0)
         {
@@ -136,11 +122,13 @@ public class PdfMaker : IPdfMaker
         }
 
         var pdfChunks = new List<byte[]>();
+        int totalRows = data.Count;
         int totalPageCount = (int)Math.Ceiling((double)totalRows / rowsPerPage);
 
         for (int currentPage = 0; currentPage < totalPageCount; currentPage++)
         {
-            var htmlContent = GetHTML();
+            var pageData = data.Skip(currentPage * rowsPerPage).Take(rowsPerPage).ToList();
+            var htmlContent = GenerateTable(pageData);
 
             if (string.IsNullOrWhiteSpace(htmlContent))
             {
@@ -165,7 +153,7 @@ public class PdfMaker : IPdfMaker
             Orientation = Orientation.Portrait,
             PaperSize = PaperKind.A4,
             Margins = new MarginSettings { Top = 10, Bottom = 10, Left = 10, Right = 10 },
-            DocumentTitle = "User",
+            DocumentTitle = "TABLE",
         };
 
         var objectSettings = new ObjectSettings
@@ -174,8 +162,6 @@ public class PdfMaker : IPdfMaker
             WebSettings =
             {
                 DefaultEncoding = "utf-8",
-                LoadImages = true,
-                EnableIntelligentShrinking = true
             }
         };
 
